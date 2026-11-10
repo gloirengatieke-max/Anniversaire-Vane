@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joyeux Anniversaire !</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --gold-primary: #d4af37;
+            --gold-glow: #ffe57f;
+            --bg-dark: #0a080d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+            color: #fff;
+            perspective: 1000px;
+        }
+
+        /* Particules de fond */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Bouton Musique */
+        .audio-control {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 50px;
+            color: var(--gold-glow);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+        }
+
+        .audio-control:hover {
+            background: rgba(212, 175, 55, 0.3);
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(212, 175, 55, 0.5);
+        }
+
+        /* Conteneur principal */
+        .container {
+            position: relative;
+            z-index: 2;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Effet Titre Néon Gold */
+        .title {
+            font-size: 2.5rem;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #fff;
+            text-shadow: 
+                0 0 7px #fff,
+                0 0 10px #fff,
+                0 0 21px #fff,
+                0 0 42px var(--gold-primary),
+                0 0 82px var(--gold-primary),
+                0 0 92px var(--gold-primary);
+            margin-bottom: 25px;
+            text-align: center;
+            animation: pulse 2s infinite alternate;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.9; transform: scale(0.98); }
+            100% { opacity: 1; transform: scale(1.02); }
+        }
+
+        /* Carte 3D / Cadre */
+        .card-wrapper {
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.1s ease-out;
+            cursor: pointer;
+        }
+
+        .card-frame {
+            position: relative;
+            border-radius: 16px;
+            padding: 12px;
+            background: linear-gradient(135deg, #d4af37 0%, #574112 50%, #ffe57f 100%);
+            box-shadow: 
+                0 15px 35px rgba(0,0,0,0.8),
+                0 0 30px rgba(212, 175, 55, 0.3);
+            max-width: 90vw;
+            width: 750px;
+            overflow: hidden;
+        }
+
+        .card-frame::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 45%,
+                rgba(255, 255, 255, 0.3) 50%,
+                transparent 55%
+            );
+            transform: rotate(30deg);
+            animation: shine 6s infinite;
+        }
+
+        @keyframes shine {
+            0% { transform: translateY(-100%) rotate(30deg); }
+            20% { transform: translateY(100%) rotate(30deg); }
+            100% { transform: translateY(100%) rotate(30deg); }
+        }
+
+        .card-image {
+            width: 100%;
+            height: auto;
+            display: block;
+            border-radius: 8px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* Bouton Surprise */
+        .btn-celebrate {
+            margin-top: 30px;
+            padding: 16px 36px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #000;
+            background: linear-gradient(45deg, #d4af37, #ffe57f, #d4af37);
+            background-size: 200% 200%;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.6);
+            transition: all 0.3s ease;
+            animation: gradientMove 3s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .btn-celebrate:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 0 35px rgba(212, 175, 55, 0.9);
+        }
+
+        .btn-celebrate:active {
+            transform: translateY(1px) scale(0.98);
+        }
+
+        /* Pop-up Modale d'anniversaire */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: linear-gradient(135deg, #181325 0%, #0a080d 100%);
+            border: 2px solid var(--gold-primary);
+            border-radius: 20px;
+            padding: 40px 30px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(212, 175, 55, 0.5);
+            transform: scale(0.7);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: scale(1);
+        }
+
+        .modal-badge {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .modal-name {
+            font-size: 1.8rem;
+            color: var(--gold-glow);
+            font-weight: 700;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-shadow: 0 0 10px rgba(212, 175, 55, 0.6);
+        }
+
+        .modal-age {
+            font-size: 3rem;
+            color: #fff;
+            font-weight: 800;
+            margin-bottom: 15px;
+            background: linear-gradient(45deg, #d4af37, #ffe57f);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .modal-text {
+            font-size: 1.1rem;
+            color: #ddd;
+            line-height: 1.6;
+            margin-bottom: 25px;
+        }
+
+        .btn-close {
+            padding: 12px 30px;
+            background: transparent;
+            border: 1px solid var(--gold-primary);
+            color: var(--gold-glow);
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-close:hover {
+            background: var(--gold-primary);
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bg-canvas"></canvas>
+
+    <button class="audio-control" onclick="toggleAudio()">
+        <i class="fas fa-music" id="audio-icon"></i>
+        <span id="audio-text">Musique</span>
+    </button>
+
+    <audio id="bg-music" loop>
+        <source src="Le_Roi_du_Vingt_Deux.mp3" type="audio/mpeg">
+    </audio>
+
+    <div class="container">
+        <h1 class="title">🎉 Événement Spécial 🎉</h1>
+        
+        <div class="card-wrapper" id="cardWrapper">
+            <div class="card-frame">
+                <!-- Remplace le nom du fichier image ici si besoin -->
+                <img src="WhatsApp Image 2026-11-06 at 15.23.22.jpeg" alt="Lettre d'anniversaire" class="card-image">
+            </div>
+        </div>
+
+        <button class="btn-celebrate" onclick="triggerFireworks()">Fêter l'événement ✨</button>
+    </div>
+
+    <!-- Pop-up d'Anniversaire -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+            <div class="modal-badge">🎂👑</div>
+            <div class="modal-name">BOKAGNA KOUMOU Flory Vane</div>
+            <div class="modal-age">22 ANS</div>
+            <p class="modal-text">Joyeux Anniversaire ! Que cette 22ᵉ année t'apporte santé, réussite, panache et l'accomplissement de toutes tes plus grandes ambitions ! ⚡✨</p>
+            <button class="btn-close" onclick="closeModal()">Fermer</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Effet 3D Tilt sur la Carte ---
+        const cardWrapper = document.getElementById('cardWrapper');
+        
+        cardWrapper.addEventListener('mousemove', (e) => {
+            const rect = cardWrapper.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            
+            const rotateX = (-y / rect.height) * 15;
+            const rotateY = (x / rect.width) * 15;
+            
+            cardWrapper.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+        });
+
+        cardWrapper.addEventListener('mouseleave', () => {
+            cardWrapper.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        });
+
+        cardWrapper.addEventListener('click', () => {
+            triggerConfetti();
+        });
+
+        // --- 2. Contrôle Audio ---
+        const audio = document.getElementById('bg-music');
+        const audioIcon = document.getElementById('audio-icon');
+        const audioText = document.getElementById('audio-text');
+
+        function toggleAudio() {
+            if (audio.paused) {
+                audio.play();
+                audioIcon.className = 'fas fa-pause';
+                audioText.innerText = 'Pause';
+            } else {
+                audio.pause();
+                audioIcon.className = 'fas fa-music';
+                audioText.innerText = 'Musique';
+            }
+        }
+
+        // --- 3. Animations Confettis & Pop-up ---
+        function triggerConfetti() {
+            confetti({
+                particleCount: 80,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#d4af37', '#ffe57f', '#ffffff', '#ff4500']
+            });
+        }
+
+        function triggerFireworks() {
+            // Afficher la fenêtre modale
+            document.getElementById('modalOverlay').classList.add('active');
+
+            // Feux d'artifice
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+
+            function randomInRange(min, max) {
+              return Math.random() * (max - min) + min;
+            }
+
+            var interval = setInterval(function() {
+              var timeLeft = animationEnd - Date.now();
+
+              if (timeLeft <= 0) {
+                return clearInterval(interval);
+              }
+
+              var particleCount = 50 * (timeLeft / duration);
+              confetti(Object.assign({}, defaults, { 
+                particleCount, 
+                origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+                colors: ['#d4af37', '#ffffff', '#ffd700']
+              }));
+              confetti(Object.assign({}, defaults, { 
+                particleCount, 
+                origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+                colors: ['#d4af37', '#ffffff', '#ffd700']
+              }));
+            }, 250);
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // Lancement de confettis au chargement
+        window.addEventListener('load', () => {
+            setTimeout(triggerConfetti, 500);
+        });
+
+        // --- 4. Particules dorées en arrière-plan ---
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        const particles = Array.from({ length: 60 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 2 + 1,
+            speedY: Math.random() * 0.5 + 0.2,
+            opacity: Math.random() * 0.5 + 0.2
+        }));
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(212, 175, 55, ${p.opacity})`;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#d4af37';
+                ctx.fill();
+
+                p.y -= p.speedY;
+                if (p.y < 0) {
+                    p.y = canvas.height;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+    </script>
+</body>
+</html>
